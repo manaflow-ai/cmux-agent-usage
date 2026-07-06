@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux-extension.schema.json",
+  "manifestVersion": 1,
+  "id": "agent-usage",
+  "name": "Agent Usage",
+  "version": "0.1.0",
+  "description": "Live coding-agent token usage and cost dashboard for the cmux Dock (wraps ccusage).",
+  "icon": "gauge",
+  "panes": [
+    {
+      "id": "live",
+      "title": "Live usage",
+      "command": ["npx", "--yes", "ccusage@latest", "blocks", "--live"]
+    },
+    {
+      "id": "daily",
+      "title": "Daily report",
+      "command": ["npx", "--yes", "ccusage@latest", "daily"]
+    }
+  ]
+}
