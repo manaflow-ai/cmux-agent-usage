@@ -30,6 +30,11 @@ CCUSAGE_INTEGRITY = (
 MUTABLE_NPM_REF = re.compile(
     r"(?:@(?:latest|next|beta|canary|dev|nightly)|(?:^|:)\s*[~^<>=*])"
 )
+EXACT_SEMVER = re.compile(
+    r"^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
 
 
 def read_json(path: Path) -> dict:
@@ -83,7 +88,7 @@ class ManifestTests(unittest.TestCase):
             self.package["dependencies"]["ccusage"], CCUSAGE_VERSION
         )
         root = self.lock["packages"][""]
-        package = self.lock["packages"][f"node_modules/ccusage"]
+        package = self.lock["packages"]["node_modules/ccusage"]
         self.assertEqual(self.lock["lockfileVersion"], 3)
         self.assertEqual(root["dependencies"]["ccusage"], CCUSAGE_VERSION)
         self.assertEqual(package["version"], CCUSAGE_VERSION)
@@ -98,10 +103,23 @@ class ManifestTests(unittest.TestCase):
             "peerDependencies",
         ):
             for name, version in self.package.get(group, {}).items():
-                self.assertFalse(
-                    MUTABLE_NPM_REF.search(version),
-                    f"mutable npm reference for {name}: {version}",
+                self.assertRegex(
+                    version,
+                    EXACT_SEMVER,
+                    f"dependency must use exact SemVer for {name}: {version}",
                 )
+
+    def test_mutable_dependency_examples_are_rejected(self) -> None:
+        mutable_specs = (
+            "latest",
+            "^1.2.3",
+            "~1.2.3",
+            "npm:package@1.2.3",
+            "github:owner/repo#main",
+            "git+https://github.com/owner/repo.git#main",
+        )
+        for spec in mutable_specs:
+            self.assertIsNone(EXACT_SEMVER.fullmatch(spec), spec)
 
     def test_installation_and_runtime_scripts_are_hardened(self) -> None:
         installer = INSTALLER_PATH.read_text(encoding="utf-8")
