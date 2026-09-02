@@ -1,0 +1,13 @@
+{
+  "name": "cmux-agent-usage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pinned runtime dependency for the cmux Agent Usage extension.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "dependencies": {
+    "ccusage": "17.2.1"
+  }
+}
