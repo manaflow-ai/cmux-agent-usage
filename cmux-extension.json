@@ -4,18 +4,28 @@
   "id": "agent-usage",
   "name": "Agent Usage",
   "version": "0.1.0",
-  "description": "Live coding-agent token usage and cost dashboard for the cmux Dock (wraps ccusage).",
+  "description": "Live Claude Code token usage and cost dashboard for the cmux Dock.",
   "icon": "gauge",
+  "build": [
+    {
+      "command": ["./scripts/install-dependencies.sh"]
+    }
+  ],
   "panes": [
     {
       "id": "live",
       "title": "Live usage",
-      "command": ["npx", "--yes", "ccusage@latest", "blocks", "--live"]
+      "command": [
+        "./scripts/run-ccusage.sh",
+        "blocks",
+        "--live",
+        "--offline"
+      ]
     },
     {
       "id": "daily",
       "title": "Daily report",
-      "command": ["npx", "--yes", "ccusage@latest", "daily"]
+      "command": ["./scripts/run-ccusage.sh", "daily", "--offline"]
     }
   ]
 }

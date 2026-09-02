@@ -1,0 +1,41 @@
+name: Validate extension
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.14.0
+      - name: Validate manifest and dependency policy
+        run: python3 tests/test_manifest.py
+      - name: Install locked dependency
+        run: npm ci --ignore-scripts --no-audit --no-fund --omit=dev
+      - name: Smoke test pinned CLI
+        run: node_modules/.bin/ccusage --version
+      - name: Verify runtime network guard
+        run: >-
+          node --require ./scripts/deny-network.cjs -e
+          'fetch("https://example.com").then(() => process.exit(1), error => {
+          if (!error.message.includes("Network access is disabled")) process.exit(2);
+          })'
+      - name: Verify isolated daily report
+        run: |
+          isolated_home="$(mktemp -d)"
+          trap 'rm -rf "$isolated_home"' EXIT
+          mkdir -p "$isolated_home/.claude/projects"
+          HOME="$isolated_home" \
+            CLAUDE_CONFIG_DIR="$isolated_home/.claude" \
+            ./scripts/run-ccusage.sh daily --offline --json

@@ -78,6 +78,10 @@ class ManifestTests(unittest.TestCase):
             )
 
     def test_lockfile_pins_expected_tarball_and_integrity(self) -> None:
+        self.assertTrue(self.package["private"])
+        self.assertEqual(
+            self.package["dependencies"]["ccusage"], CCUSAGE_VERSION
+        )
         root = self.lock["packages"][""]
         package = self.lock["packages"][f"node_modules/ccusage"]
         self.assertEqual(self.lock["lockfileVersion"], 3)
@@ -86,12 +90,25 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(package["resolved"], CCUSAGE_TARBALL)
         self.assertEqual(package["integrity"], CCUSAGE_INTEGRITY)
 
+    def test_package_metadata_has_no_mutable_npm_reference(self) -> None:
+        for group in (
+            "dependencies",
+            "devDependencies",
+            "optionalDependencies",
+            "peerDependencies",
+        ):
+            for name, version in self.package.get(group, {}).items():
+                self.assertFalse(
+                    MUTABLE_NPM_REF.search(version),
+                    f"mutable npm reference for {name}: {version}",
+                )
+
     def test_installation_and_runtime_scripts_are_hardened(self) -> None:
         installer = INSTALLER_PATH.read_text(encoding="utf-8")
         runner = RUNNER_PATH.read_text(encoding="utf-8")
         guard = NETWORK_GUARD_PATH.read_text(encoding="utf-8")
         for option in (
-            "npm ci",
+            "ci --ignore-scripts",
             "--ignore-scripts",
             "--no-audit",
             "--no-fund",
@@ -102,7 +119,8 @@ class ManifestTests(unittest.TestCase):
         self.assertIn("env -i", runner)
         self.assertIn("--require", runner)
         self.assertIn("node_modules/ccusage/dist/index.js", runner)
-        self.assertIn("globalThis.fetch", guard)
+        self.assertRegex(guard, r"globalThis[\s,]+[\"']fetch[\"']")
+        self.assertIn("NPM_CONFIG_GLOBALCONFIG=/dev/null", installer)
         for path in (INSTALLER_PATH, RUNNER_PATH):
             self.assertTrue(
                 path.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
